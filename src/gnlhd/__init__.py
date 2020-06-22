@@ -1,12 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-"""
-@Author:               Daumantas Kavolis <dkavolis>
-@Date:                 21-Jun-2020
-@Filename:             __init__.py
-@Last Modified By:     Daumantas Kavolis
-@Last Modified Time:   22-Jun-2020
-"""
 
 from pkg_resources import get_distribution, DistributionNotFound
 
