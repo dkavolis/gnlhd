@@ -78,6 +78,13 @@ class GGNLHD(RClass, rclass=rgnlhd.GGNLHD):
         # wth mypy???
         return cast(Tuple[int], tuple(int(i) for i in self._get("t")))
 
+    def normalize(self, lhd: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+        if rng is None:
+            rng = np.random.default_rng()
+
+        lhd = np.asarray(lhd)
+        return (lhd - rng.uniform(low=0, high=1, size=lhd.shape)) / self.lcm
+
 
 class LHD(GGNLHD, rclass=rgnlhd.LHD):
     def __init__(self, s: int, q: int):
