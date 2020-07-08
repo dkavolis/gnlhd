@@ -35,8 +35,11 @@ class RMeta(type):
         cls = super().__new__(mcs, name, bases, attrs)
         cls.__slots__ = ("_robj",)
         if not is_abstract:
-            cls._robj_init = rclass["new"]
+            cls._RCLASS_NEW = rclass["new"]
         return cls
+
+    def _robj_init(self, *args, **kwargs):
+        return self._RCLASS_NEW(*args, **kwargs)
 
 
 class RClass(metaclass=RMeta, is_abstract=True):
@@ -78,12 +81,21 @@ class GGNLHD(RClass, rclass=rgnlhd.GGNLHD):
         # wth mypy???
         return cast(Tuple[int], tuple(int(i) for i in self._get("t")))
 
-    def normalize(self, lhd: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def normalize(
+        self,
+        lhd: np.ndarray,
+        rng: np.random.Generator = None,
+        lims: Tuple[float, float] = None,
+    ) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
 
         lhd = np.asarray(lhd)
-        return (lhd - rng.uniform(low=0, high=1, size=lhd.shape)) / self.lcm
+        samples = (lhd - rng.uniform(low=0, high=1, size=lhd.shape)) / self.lcm
+        if lims is not None:
+            samples = lims[0] + samples * (lims[1] - lims[0])
+
+        return samples
 
 
 class LHD(GGNLHD, rclass=rgnlhd.LHD):
@@ -189,39 +201,48 @@ class GNLHD(GGNLHD, rclass=rgnlhd.GNLHD):
     def standard(self):
         return np.asarray(self._call("StandGNLHD"), dtype=np.double)
 
-    def optimize(
-        self,
-        iterations: int,
-        w: np.ndarray,
-        full: np.ndarray = None,
-        th_initial: float = 0.1,
-        m: int = 100,
-        j: int = 6,
-        t: int = 2,
-        p: int = 50,
-        tolerance: float = 0.1,
-        alpha: Iterable[float] = (0.8, 0.9, 0.7),
-    ):
-        if full is None:
-            full = self.full()
-        else:
-            full = np.asarray(full)
+    # --BROKEN-----------
+    # def optimize(
+    #     self,
+    #     iterations: int,
+    #     w: np.ndarray,
+    #     full: np.ndarray = None,
+    #     th_initial: float = 0.1,
+    #     m: int = 100,
+    #     j: int = 6,
+    #     t: int = 2,
+    #     p: int = 50,
+    #     tolerance: float = 0.1,
+    #     alpha: Iterable[float] = (0.8, 0.9, 0.7),
+    # ):
+    #     if full is None:
+    #         full = self.full()
+    #     else:
+    #         full = np.asarray(full)
 
-        return np.asarray(
-            rgnlhd.Optimalgnlhd_SequentialAlg(
-                GNLHD_in=self._robj,
-                GNLHD_Full=full,
-                iteration=iterations,
-                w=np.asarray(w),
-                T_h_initial=th_initial,
-                M=m,
-                J=j,
-                t=t,
-                p=p,
-                tolerance=tolerance,
-                alpha=np.asarray(alpha),
-            )
-        )
+    #     w = np.asarray(w)
+    #     if len(w) != len(self.s):
+    #         raise ValueError("w must be the same length as sample sequence")
+
+    #     # the R function seems to be buggy, fails with
+    #     # rpy2.rinterface_lib.embedded.RRuntimeError:
+    #     # Error in rep(0, n * n) : invalid 'times' argument
+    #     # doesn't even work from R console...
+    #     return np.asarray(
+    #         rgnlhd.Optimal_GNLHD_SequentialAlg(
+    #             GNLHD_in=self._robj,
+    #             GNLH_Full=full,
+    #             iteration=iterations,
+    #             w=w,
+    #             T_h_initial=th_initial,
+    #             M=m,
+    #             J=j,
+    #             t=t,
+    #             p=p,
+    #             tolerance=tolerance,
+    #             alpha=np.asarray(alpha),
+    #         )
+    #     )
 
 
 def phi_p(design: np.ndarray, t: int, p: int) -> float:
